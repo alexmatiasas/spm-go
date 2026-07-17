@@ -3,6 +3,7 @@
 #
 # Binaries for programs and plugins
 spm
+!cmd/spm
 *.exe
 *.exe~
 *.dll
