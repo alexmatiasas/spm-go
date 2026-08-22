@@ -14,8 +14,13 @@ func UserConfigDir() string {
 	return filepath.Join(home, ".config", "spm")
 }
 
-// UserConfigFile returns ~/.config/spm/config.toml.
+// UserConfigFile returns the SPM_CONFIG override or
+// ~/.config/spm/config.toml (XDG).
 func UserConfigFile() string {
+	if p := os.Getenv("SPM_CONFIG"); p != "" {
+		return p
+	}
+
 	return filepath.Join(UserConfigDir(), "config.toml")
 }
 
@@ -30,7 +35,11 @@ func ProjectConfigFile() string {
 	return filepath.Join(ProjectConfigDir(), "config.toml")
 }
 
-// DBPath returns ~/.config/spm/spm.db.
+// DBPath returns the SPM_DB override or ~/.config/spm/spm.db.
 func DBPath() string {
+	if p := os.Getenv("SPM_DB"); p != "" {
+		return p
+	}
+
 	return filepath.Join(UserConfigDir(), "spm.db")
 }

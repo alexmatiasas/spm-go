@@ -1,5 +1,12 @@
-// Package config ...
 package config
+
+import (
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/BurntSushi/toml"
+)
 
 // Config ...
 type Config struct {
@@ -39,6 +46,31 @@ func Load() (Config, error) {
 // file paths, applying defaults first and merging each layer over them.
 // Parameter order matters: the user layer merges over defaults, the
 // project layer over the user layer.
-func LoadFrom(_, _ string) (Config, error) {
-	return Config{}, nil
+func LoadFrom(userPath, projectPath string) (Config, error) {
+	cfg := Defaults()
+
+	layers := []struct{ name, path string }{
+		{"user", userPath},
+		{"project", projectPath},
+	}
+
+	for _, layer := range layers {
+		if err := mergeFile(layer.path, &cfg); err != nil {
+			return cfg, fmt.Errorf("config: %s layer %s: %w", layer.name, layer.path, err)
+		}
+	}
+
+	return cfg, nil
+}
+
+// mergeFile decodes path over cfg. Keys present in the file overwrite;
+// keys absent keep their current values. A missing file is not an error.
+func mergeFile(path string, cfg *Config) error {
+	if _, err := toml.DecodeFile(path, cfg); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
