@@ -9,7 +9,7 @@ import (
 )
 
 // failingRunner simulates a native tool crashing mid-scaffold.
-func failingRunner(context.Context, string, ...string) error {
+func failingRunner(context.Context, string, string, ...string) error {
 	return errors.New("boom")
 }
 

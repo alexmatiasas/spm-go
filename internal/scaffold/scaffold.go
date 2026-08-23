@@ -9,27 +9,36 @@ import (
 	"path/filepath"
 )
 
-// CommandRunner executes an external command. It exists so tests can
-// replace native tool invocations with fakes.
-type CommandRunner func(ctx context.Context, name string, args ...string) error
+// CommandRunner executes an external command inside dir. It exists so
+// tests can replace native tool invocations with fakes.
+type CommandRunner func(ctx context.Context, dir, name string, args ...string) error
 
 // ErrDestinationOccupied reports that the target directory already
 // contains user work and scaffold refuses to touch it.
 var ErrDestinationOccupied = errors.New("scaffold: destination exists and is not empty")
 
-// primaryBinary names the native tool that owns environment setup for
-// the requested stack. Full argument wiring arrives with native tool
-// integration; lifecycle tests only pin which binary would run.
-func primaryBinary(opts Options) string {
+// nativeCommand maps the requested stack to its native tooling
+// invocation, run inside the project directory. conda creates the
+// environment; templates add any project files it does not cover.
+func nativeCommand(opts Options) (string, []string) {
+	const (
+		nameFlag = "--name"
+		initWord = "init"
+	)
+
 	switch opts.Language {
 	case LangPython:
 		if opts.PackageManager == PMConda {
-			return PMConda
+			return PMConda, []string{"create", nameFlag, opts.Name, "-y"}
 		}
 
-		return PMUV
+		return PMUV, []string{initWord, nameFlag, opts.Name}
+	case LangGo:
+		return "go", []string{"mod", initWord, opts.Name}
+	case LangRust:
+		return "cargo", []string{initWord, nameFlag, opts.Name}
 	default:
-		return opts.Language
+		return opts.Language, nil
 	}
 }
 
@@ -77,10 +86,11 @@ func Run(ctx context.Context, root string, opts Options, run ...CommandRunner) e
 	}()
 
 	// Native step only runs when a runner is injected; the production
-	// exec runner arrives with native tool integration.
+	// exec runner arrives with CLI wiring.
 	for _, r := range run {
 		if r != nil {
-			if err := r(ctx, primaryBinary(opts)); err != nil {
+			binary, args := nativeCommand(opts)
+			if err := r(ctx, target, binary, args...); err != nil {
 				return err
 			}
 
