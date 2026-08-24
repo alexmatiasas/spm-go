@@ -45,6 +45,34 @@ func applyTemplates(target string, opts Options) error {
 	return copyTree(fragments, target, true, opts)
 }
 
+// applyLicense stamps the requested license text into target. License
+// texts live in the catalog under _licenses/<key>/LICENSE and carry
+// the same {{YEAR}} placeholder as every other template file, so an
+// empty license leaves the project untouched.
+func applyLicense(target string, opts Options) error {
+	if opts.License == "" {
+		return nil
+	}
+
+	src := filepath.Join(TemplatesDir, "_licenses", opts.License, "LICENSE")
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf(
+			"scaffold: license %s missing from catalog %s: %w",
+			opts.License,
+			TemplatesDir,
+			err,
+		)
+	}
+
+	dst := filepath.Join(target, "LICENSE")
+	if err := os.WriteFile(dst, renderTemplate(data, opts), 0o644); err != nil {
+		return fmt.Errorf("scaffold: write %s: %w", dst, err)
+	}
+
+	return nil
+}
+
 // renderTemplate substitutes the placeholder tokens spm owns. Tokens
 // are plain text so files without them pass through byte-identical.
 func renderTemplate(data []byte, opts Options) []byte {

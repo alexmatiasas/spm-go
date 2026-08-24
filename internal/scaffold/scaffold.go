@@ -155,6 +155,10 @@ func Run(ctx context.Context, root string, opts Options, run ...CommandRunner) e
 		return err
 	}
 
+	if err := applyLicense(target, opts); err != nil {
+		return err
+	}
+
 	if err := writeProjectManifest(target, opts); err != nil {
 		return err
 	}

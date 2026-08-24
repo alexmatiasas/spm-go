@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -151,6 +152,62 @@ func TestTemplatePlaceholdersAreRendered(t *testing.T) {
 	want := fmt.Sprintf("# demo\n\nCreated %d.\n", time.Now().UTC().Year())
 	if string(data) != want {
 		t.Errorf("README.md = %q, want rendered placeholders %q", data, want)
+	}
+}
+
+func TestRunWritesRequestedLicense(t *testing.T) {
+	cases := map[string]string{
+		"mit":          "MIT License",
+		"apache-2.0":   "Apache License",
+		"bsd-3-clause": "BSD 3-Clause",
+	}
+
+	for key, want := range cases {
+		t.Run(key, func(t *testing.T) {
+			prev := TemplatesDir
+			TemplatesDir = realCatalogDir(t)
+			t.Cleanup(func() { TemplatesDir = prev })
+
+			root := t.TempDir()
+			opts := Options{
+				Name:        "licensed",
+				Language:    LangPython,
+				ProjectType: "cli",
+				RigorLevel:  manifest.RigorMinimal,
+				License:     key,
+			}
+
+			if err := Run(t.Context(), root, opts); err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+
+			data, err := os.ReadFile(filepath.Join(root, "licensed", "LICENSE"))
+			if err != nil {
+				t.Fatalf("LICENSE: %v", err)
+			}
+
+			if !strings.Contains(string(data), want) {
+				t.Errorf("LICENSE missing %q:\n%s", want, data)
+			}
+
+			if !strings.Contains(string(data), strconv.Itoa(time.Now().UTC().Year())) {
+				t.Errorf("LICENSE missing rendered {{YEAR}}:\n%s", data)
+			}
+		})
+	}
+}
+
+func TestValidateRejectsUnknownLicense(t *testing.T) {
+	opts := Options{
+		Name:        "ok",
+		Language:    LangGo,
+		ProjectType: "service",
+		RigorLevel:  manifest.RigorMinimal,
+		License:     "gpl-9000",
+	}
+
+	if err := Validate(opts); err == nil {
+		t.Fatal("expected unknown license to fail validation")
 	}
 }
 

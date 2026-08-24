@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/alexmatiasas/spm/internal/manifest"
 )
@@ -28,6 +29,7 @@ type Options struct {
 	ProjectType    string
 	RigorLevel     string
 	PackageManager string // python only: uv | conda
+	License        string // optional: mit | apache-2.0 | bsd-3-clause
 	InitGit        bool
 	InitialCommit  bool
 }
@@ -40,6 +42,21 @@ var (
 		manifest.RigorStrict:   true,
 	}
 	packageManagers = map[string]bool{PMUV: true, PMConda: true}
+
+	// Licenses lists the SPDX-style keys spm can stamp into a new
+	// project. Order is the recommendation order shown in the wizard:
+	// MIT for portfolio/public work, Apache-2.0 when patent protection
+	// matters, BSD-3-Clause as the permissive alternative.
+	Licenses = []string{"mit", "apache-2.0", "bsd-3-clause"}
+
+	licenses = func() map[string]bool {
+		m := make(map[string]bool, len(Licenses))
+		for _, l := range Licenses {
+			m[l] = true
+		}
+
+		return m
+	}()
 
 	// safeName allows a single path-safe token: no separators, no
 	// leading dot or dash, no whitespace.
@@ -80,6 +97,11 @@ func Validate(opts Options) error {
 
 	if !rigorLevels[opts.RigorLevel] {
 		return fmt.Errorf("scaffold: unknown rigor level %q", opts.RigorLevel)
+	}
+
+	if opts.License != "" && !licenses[opts.License] {
+		return fmt.Errorf("scaffold: unknown license %q (want one of %s)",
+			opts.License, strings.Join(Licenses, ", "))
 	}
 
 	switch {
