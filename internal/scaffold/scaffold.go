@@ -7,6 +7,9 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/alexmatiasas/spm/internal/manifest"
 )
 
 // CommandRunner executes an external command inside dir. It exists so
@@ -40,6 +43,52 @@ func nativeCommand(opts Options) (string, []string) {
 	default:
 		return opts.Language, nil
 	}
+}
+
+// writeProjectManifest records the creation decision inside the new
+// project, under .spm/manifest.yaml.
+func writeProjectManifest(target string, opts Options) error {
+	m := manifest.Manifest{
+		SchemaVersion:   manifest.SchemaVersion,
+		Name:            opts.Name,
+		Language:        opts.Language,
+		ProjectType:     opts.ProjectType,
+		RigorLevel:      opts.RigorLevel,
+		TemplateVersion: TemplateVersion,
+		CreatedAt:       time.Now().UTC(),
+	}
+
+	path := filepath.Join(target, ".spm", "manifest.yaml")
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("scaffold: create %s: %w", filepath.Dir(path), err)
+	}
+
+	if err := manifest.Write(path, m); err != nil {
+		return fmt.Errorf("scaffold: %w", err)
+	}
+
+	return nil
+}
+
+// gitSteps returns the git invocation sequence for the requested
+// options. --no-commit stops after init: staging and the first commit
+// stay in the user's hands.
+func gitSteps(opts Options) [][]string {
+	if !opts.InitGit {
+		return nil
+	}
+
+	steps := [][]string{{"init"}}
+
+	if opts.InitialCommit {
+		steps = append(steps,
+			[]string{"add", "-A"},
+			[]string{"commit", "-m", fmt.Sprintf("Scaffold %s with spm", opts.Name)},
+		)
+	}
+
+	return steps
 }
 
 // Run scaffolds a new project at <root>/<opts.Name>. The destination
@@ -85,21 +134,39 @@ func Run(ctx context.Context, root string, opts Options, run ...CommandRunner) e
 		}
 	}()
 
-	// Native step only runs when a runner is injected; the production
-	// exec runner arrives with CLI wiring.
+	// Native and git steps only run when a runner is injected; the
+	// production exec runner arrives with CLI wiring.
+	var runner CommandRunner
 	for _, r := range run {
 		if r != nil {
-			binary, args := nativeCommand(opts)
-			if err := r(ctx, target, binary, args...); err != nil {
-				return err
-			}
-
+			runner = r
 			break
+		}
+	}
+
+	if runner != nil {
+		binary, args := nativeCommand(opts)
+		if err := runner(ctx, target, binary, args...); err != nil {
+			return err
 		}
 	}
 
 	if err := applyTemplates(target, opts); err != nil {
 		return err
+	}
+
+	if err := writeProjectManifest(target, opts); err != nil {
+		return err
+	}
+
+	for _, args := range gitSteps(opts) {
+		if runner == nil {
+			break // provisional: production runner lands with CLI wiring
+		}
+
+		if err := runner(ctx, target, "git", args...); err != nil {
+			return err
+		}
 	}
 
 	if err := ctx.Err(); err != nil {

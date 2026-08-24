@@ -9,7 +9,10 @@ import (
 )
 
 func TestRunWritesManifestWithCreationMetadata(t *testing.T) {
-	useFixtureCatalog(t, map[string]string{"python/ml-pipeline/README.md": "# ml"})
+	useFixtureCatalog(t, map[string]string{
+		"python/ml-pipeline/README.md":         "# ml",
+		"_fragments/standard/python/lint.toml": "[lint]",
+	})
 
 	root := t.TempDir()
 	opts := validPython()
