@@ -29,6 +29,7 @@ type ExcludeConfig struct {
 // DefaultsConfig ...
 type DefaultsConfig struct {
 	ProjectType string `toml:"project_type"`
+	ProjectRoot string `toml:"project_root"`
 }
 
 // ShellConfig ...

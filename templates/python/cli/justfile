@@ -1,0 +1,23 @@
+# Task runner: https://just.systems
+default:
+    @just --list
+
+setup:
+    uv sync
+    uv add --dev pytest ruff
+
+run *ARGS:
+    uv run python -m src {{ARGS}}
+
+test *ARGS:
+    uv run pytest {{ARGS}}
+
+lint:
+    uvx ruff check .
+
+typecheck:
+    uvx pyright
+
+format:
+    uvx ruff format .
+    uvx ruff check --fix .

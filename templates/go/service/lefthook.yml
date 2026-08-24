@@ -1,0 +1,31 @@
+# Managed by spm — install once: lefthook install
+# Base hooks use only the Go toolchain, so they work on any checkout.
+pre-commit:
+  commands:
+    fmt-check:
+      glob: "*.go"
+      run: test -z "$(gofmt -l {staged_files})"
+      skip:
+        - merge
+        - rebase
+    vet:
+      glob: "*.go"
+      run: go vet ./...
+      skip:
+        - merge
+        - rebase
+
+commit-msg:
+  commands:
+    capitalize:
+      run: |
+        MSG=$(cat "{1}")
+        if ! echo "$MSG" | grep -qE "^[A-Z].*$"; then
+          echo "Commit messages start with a capital letter (imperative mood)." >&2
+          exit 1
+        fi
+
+pre-push:
+  commands:
+    test:
+      run: go test -race ./...
