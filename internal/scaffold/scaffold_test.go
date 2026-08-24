@@ -14,6 +14,11 @@ func failingRunner(context.Context, string, string, ...string) error {
 }
 
 func TestRunCreatesTargetDirectory(t *testing.T) {
+	useFixtureCatalog(t, map[string]string{
+		"python/ml-pipeline/README.md":         "# demo",
+		"_fragments/standard/python/lint.toml": "[lint]",
+	})
+
 	root := t.TempDir()
 	opts := validPython()
 
@@ -56,6 +61,11 @@ func TestRunRejectsOccupiedDestination(t *testing.T) {
 }
 
 func TestRunAllowsEmptyExistingDestination(t *testing.T) {
+	useFixtureCatalog(t, map[string]string{
+		"python/ml-pipeline/README.md":         "# demo",
+		"_fragments/standard/python/lint.toml": "[lint]",
+	})
+
 	root := t.TempDir()
 	opts := validPython()
 

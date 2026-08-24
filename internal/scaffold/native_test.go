@@ -62,6 +62,17 @@ func TestRunInvokesNativeToolInTargetDir(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.label, func(t *testing.T) {
+			useFixtureCatalog(t, map[string]string{
+				"python/cli/README.md":                 "# cli",
+				"python/ml-pipeline/README.md":         "# ml",
+				"go/service/README.md":                 "# service",
+				"rust/cli/README.md":                   "# rust cli",
+				"_fragments/standard/python/lint.toml": "[lint]",
+				"_fragments/standard/go/lint.toml":     "[lint]",
+				"_fragments/standard/rust/lint.toml":   "[lint]",
+				"_fragments/strict/go/mutation.toml":   "[mut]",
+			})
+
 			root := t.TempDir()
 			rec := &recorder{}
 
