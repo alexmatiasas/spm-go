@@ -12,6 +12,7 @@ func Defaults() Config {
 		},
 		Defaults: DefaultsConfig{
 			ProjectType: "python",
+			ProjectRoot: "~/projects",
 		},
 	}
 }
