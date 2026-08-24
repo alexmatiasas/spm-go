@@ -31,6 +31,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - uses: astral-sh/setup-uv@v8 # pin verified pre-release
       - run: go mod tidy
       - run: go test -race -count=1 ./...
 
