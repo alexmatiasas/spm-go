@@ -133,3 +133,11 @@ auto_cd = true
 		t.Error("AutoCD = false, want true from project layer")
 	}
 }
+
+func TestDefaultsIncludeProjectRoot(t *testing.T) {
+	cfg := Defaults()
+
+	if cfg.Defaults.ProjectRoot != "~/projects" {
+		t.Errorf("Defaults.ProjectRoot = %q, want %q", cfg.Defaults.ProjectRoot, "~/projects")
+	}
+}

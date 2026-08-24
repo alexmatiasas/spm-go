@@ -21,6 +21,7 @@ func NewRootCmd(version, commit string) *cobra.Command {
 
 	root.AddCommand(newVersionCmd(version, commit))
 	root.AddCommand(newConfigCmd())
+	root.AddCommand(newNewCmd())
 
 	return root
 }
