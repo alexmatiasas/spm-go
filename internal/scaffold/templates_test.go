@@ -2,12 +2,14 @@ package scaffold
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/alexmatiasas/spm/internal/manifest"
 )
@@ -126,6 +128,29 @@ func TestMinimalKeepsBaseFileWhenFragmentWouldOverride(t *testing.T) {
 
 	if string(data) != "base: true" {
 		t.Errorf("lefthook.yml = %q, minimal projects must keep the base content", data)
+	}
+}
+
+func TestTemplatePlaceholdersAreRendered(t *testing.T) {
+	useFixtureCatalog(t, map[string]string{
+		"python/cli/README.md": "# {{PROJECT_NAME}}\n\nCreated {{YEAR}}.\n",
+	})
+
+	root := t.TempDir()
+	opts := Options{Name: "demo", Language: LangPython, ProjectType: "cli", RigorLevel: manifest.RigorMinimal}
+
+	if err := Run(t.Context(), root, opts); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(root, "demo", "README.md"))
+	if err != nil {
+		t.Fatalf("target README.md: %v", err)
+	}
+
+	want := fmt.Sprintf("# demo\n\nCreated %d.\n", time.Now().UTC().Year())
+	if string(data) != want {
+		t.Errorf("README.md = %q, want rendered placeholders %q", data, want)
 	}
 }
 
