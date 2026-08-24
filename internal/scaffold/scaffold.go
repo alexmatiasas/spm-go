@@ -72,8 +72,11 @@ func writeProjectManifest(target string, opts Options) error {
 }
 
 // gitSteps returns the git invocation sequence for the requested
-// options. --no-commit stops after init: staging and the first commit
-// stay in the user's hands.
+// options. --no-commit stops after init: staging and the first real
+// commit stay in the user's hands. The initial commit is empty on
+// purpose — like git flow's root commit — so scaffold files stay
+// unstaged and the user curates what lands in their first real
+// commit; an existing commit also unblocks pushing a remote.
 func gitSteps(opts Options) [][]string {
 	if !opts.InitGit {
 		return nil
@@ -83,8 +86,7 @@ func gitSteps(opts Options) [][]string {
 
 	if opts.InitialCommit {
 		steps = append(steps,
-			[]string{"add", "-A"},
-			[]string{"commit", "-m", fmt.Sprintf("Scaffold %s with spm", opts.Name)},
+			[]string{"commit", "--allow-empty", "-m", "Initial commit"},
 		)
 	}
 

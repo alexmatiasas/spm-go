@@ -88,14 +88,19 @@ func TestRunRunsFullGitSequenceWhenEnabled(t *testing.T) {
 
 	want := []recordedCall{
 		{dir: filepath.Join(root, opts.Name), name: "git", args: []string{"init"}},
-		{dir: filepath.Join(root, opts.Name), name: "git", args: []string{"add", "-A"}},
-		{dir: filepath.Join(root, opts.Name), name: "git", args: []string{"commit", "-m", "Scaffold payments with spm"}},
+		{dir: filepath.Join(root, opts.Name), name: "git", args: []string{"commit", "--allow-empty", "-m", "Initial commit"}},
 	}
 
 	got := gitCalls(rec.calls)
 
 	if !equalCalls(got, want) {
 		t.Errorf("git sequence:\n got %+v\nwant %+v", got, want)
+	}
+
+	for _, call := range got {
+		if len(call.args) > 0 && (call.args[0] == "add" || call.args[0] == "stage") {
+			t.Errorf("initial commit must not stage scaffold files, got %v", call.args)
+		}
 	}
 }
 
