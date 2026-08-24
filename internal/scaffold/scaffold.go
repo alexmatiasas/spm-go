@@ -98,6 +98,10 @@ func Run(ctx context.Context, root string, opts Options, run ...CommandRunner) e
 		}
 	}
 
+	if err := applyTemplates(target, opts); err != nil {
+		return err
+	}
+
 	if err := ctx.Err(); err != nil {
 		return err
 	}
