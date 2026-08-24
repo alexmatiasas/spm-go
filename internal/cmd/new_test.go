@@ -108,7 +108,9 @@ func TestNewDefaultsLanguageFromConfigAndRootFromCwd(t *testing.T) {
 	}
 
 	userCfg := filepath.Join(xdg, "spm", "config.toml")
-	if err := os.WriteFile(userCfg, []byte("[defaults]\nproject_type = \"go\"\n"), 0o644); err != nil {
+	// project_root = "" opts out of the shipped default: spm new then
+	// falls back to the current directory.
+	if err := os.WriteFile(userCfg, []byte("[defaults]\nproject_type = \"go\"\nproject_root = \"\"\n"), 0o644); err != nil {
 		t.Fatalf("write user config: %v", err)
 	}
 
