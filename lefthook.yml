@@ -4,7 +4,9 @@ pre-commit:
       run: golangci-lint run
       stage_fixed: true
     format:
-      run: gofumpt -w -extra .
+      glob: "*.go"
+      run: gofumpt -w -extra {staged_files}
+      exclude: "^templates/"
       stage_fixed: true
     go-mod-tidy:
       run: go mod tidy

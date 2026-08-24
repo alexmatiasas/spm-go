@@ -25,6 +25,8 @@ linters:
     generated: lax
     presets:
       - common-false-positives
+    paths:
+      - ^templates/
   settings:
     exhaustive:
       default-signifies-exhaustive: true
@@ -42,3 +44,5 @@ formatters:
     - golines
   exclusions:
     generated: lax
+    paths:
+      - ^templates/
