@@ -211,6 +211,34 @@ func TestValidateRejectsUnknownLicense(t *testing.T) {
 	}
 }
 
+func TestStrictStacksStandardFragments(t *testing.T) {
+	prev := TemplatesDir
+	TemplatesDir = realCatalogDir(t)
+	t.Cleanup(func() { TemplatesDir = prev })
+
+	root := t.TempDir()
+	opts := Options{
+		Name:        "stacked",
+		Language:    LangGo,
+		ProjectType: "service",
+		RigorLevel:  manifest.RigorStrict,
+	}
+
+	if err := Run(t.Context(), root, opts); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	for _, f := range []string{
+		".github/workflows/ci.yml",
+		".github/workflows/mutation.yml",
+		".github/workflows/security.yml",
+	} {
+		if _, err := os.Stat(filepath.Join(root, "stacked", f)); err != nil {
+			t.Errorf("strict must include standard layer, missing %s: %v", f, err)
+		}
+	}
+}
+
 func TestRunNeverOverwritesNativeToolOutput(t *testing.T) {
 	useFixtureCatalog(t, map[string]string{
 		"python/cli/README.md": "template version",

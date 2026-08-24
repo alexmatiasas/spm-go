@@ -24,12 +24,14 @@ var TemplatesDir = "templates"
 const TemplateVersion = "0.1.0"
 
 // applyTemplates copies the base skeleton for the requested
-// language x type into target, then layers the rigor fragments on
-// top. The minimal level applies no fragments by definition: its
-// guardrails are exactly what the base skeleton ships. The base pass
-// never overwrites existing files (native tooling owns whatever it
-// created); the fragment pass does, so a rigor level can upgrade a
-// file the base skeleton shipped.
+// language x type into target, then layers rigor fragments on top.
+// Rigor is cumulative: a level applies every fragment set from
+// standard up to its own, in ascending order, so strict gets
+// everything standard ships plus its own upgrades. The minimal level
+// applies no fragments by definition: its guardrails are exactly what
+// the base skeleton ships. The base pass never overwrites existing
+// files (native tooling owns whatever it created); the fragment pass
+// does, so a rigor level can upgrade a file an earlier layer shipped.
 func applyTemplates(target string, opts Options) error {
 	base := filepath.Join(TemplatesDir, opts.Language, opts.ProjectType)
 	if err := copyTree(base, target, false, opts); err != nil {
@@ -40,9 +42,18 @@ func applyTemplates(target string, opts Options) error {
 		return nil
 	}
 
-	fragments := filepath.Join(TemplatesDir, "_fragments", opts.RigorLevel, opts.Language)
+	for _, level := range []string{manifest.RigorStandard, manifest.RigorStrict} {
+		fragments := filepath.Join(TemplatesDir, "_fragments", level, opts.Language)
+		if level == manifest.RigorStrict && opts.RigorLevel == manifest.RigorStandard {
+			break
+		}
 
-	return copyTree(fragments, target, true, opts)
+		if err := copyTree(fragments, target, true, opts); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // applyLicense stamps the requested license text into target. License

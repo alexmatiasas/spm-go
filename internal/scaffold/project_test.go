@@ -73,8 +73,9 @@ func equalCalls(got, want []recordedCall) bool {
 
 func TestRunRunsFullGitSequenceWhenEnabled(t *testing.T) {
 	useFixtureCatalog(t, map[string]string{
-		"go/service/README.md":          "# service",
-		"_fragments/strict/go/mut.toml": "[mut]",
+		"go/service/README.md":             "# service",
+		"_fragments/standard/go/lint.toml": "[lint]",
+		"_fragments/strict/go/mut.toml":    "[mut]",
 	})
 
 	root := t.TempDir()
