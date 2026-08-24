@@ -23,11 +23,13 @@ const TemplateVersion = "0.1.0"
 // applyTemplates copies the base skeleton for the requested
 // language x type into target, then layers the rigor fragments on
 // top. The minimal level applies no fragments by definition: its
-// guardrails are exactly what the base skeleton ships. Existing files
-// are never overwritten: native tooling owns whatever it created.
+// guardrails are exactly what the base skeleton ships. The base pass
+// never overwrites existing files (native tooling owns whatever it
+// created); the fragment pass does, so a rigor level can upgrade a
+// file the base skeleton shipped.
 func applyTemplates(target string, opts Options) error {
 	base := filepath.Join(TemplatesDir, opts.Language, opts.ProjectType)
-	if err := copyTree(base, target); err != nil {
+	if err := copyTree(base, target, false); err != nil {
 		return err
 	}
 
@@ -37,13 +39,14 @@ func applyTemplates(target string, opts Options) error {
 
 	fragments := filepath.Join(TemplatesDir, "_fragments", opts.RigorLevel, opts.Language)
 
-	return copyTree(fragments, target)
+	return copyTree(fragments, target, true)
 }
 
 // copyTree copies every file under src into dst, creating directories
-// as needed and preserving permissions. Existing files at the
-// destination are left untouched.
-func copyTree(src, dst string) error {
+// as needed and preserving permissions. With overwrite=false existing
+// files at the destination are left untouched; with overwrite=true
+// they are replaced, which is how rigor fragments upgrade base files.
+func copyTree(src, dst string, overwrite bool) error {
 	info, statErr := os.Stat(src)
 	switch {
 	case errors.Is(statErr, fs.ErrNotExist):
@@ -74,8 +77,8 @@ func copyTree(src, dst string) error {
 			return nil
 		}
 
-		if _, err := os.Stat(dstPath); err == nil {
-			return nil // native tooling owns existing files; skip
+		if _, err := os.Stat(dstPath); err == nil && !overwrite {
+			return nil // base pass: native tooling owns existing files; skip
 		}
 
 		srcInfo, err := entry.Info()
