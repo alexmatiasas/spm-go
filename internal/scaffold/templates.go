@@ -15,6 +15,11 @@ import (
 // for distribution builds.
 var TemplatesDir = "templates"
 
+// TemplateVersion identifies which catalog revision produced a
+// project; inventory compares it against the current value to detect
+// drift.
+const TemplateVersion = "0.1.0"
+
 // applyTemplates copies the base skeleton for the requested
 // language x type into target, then layers the rigor fragments on
 // top. The minimal level applies no fragments by definition: its
