@@ -1,0 +1,31 @@
+# Managed by spm — install once: lefthook install
+# Hooks use only cargo, so they work on any checkout with rustup.
+pre-commit:
+  commands:
+    fmt-check:
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+      skip:
+        - merge
+        - rebase
+    clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets -- -D warnings
+      skip:
+        - merge
+        - rebase
+
+commit-msg:
+  commands:
+    capitalize:
+      run: |
+        MSG=$(cat "{1}")
+        if ! echo "$MSG" | grep -qE "^[A-Z].*$"; then
+          echo "Commit messages start with a capital letter (imperative mood)." >&2
+          exit 1
+        fi
+
+pre-push:
+  commands:
+    test:
+      run: cargo test

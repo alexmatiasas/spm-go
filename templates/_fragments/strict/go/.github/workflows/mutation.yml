@@ -1,0 +1,9 @@
+name: strict-gates
+on: [push]
+jobs:
+  gremlins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+      - run: gremlins unleash

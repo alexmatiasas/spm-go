@@ -1,0 +1,48 @@
+version: "2"
+run:
+  tests: false
+linters:
+  enable:
+    - errcheck
+    - goconst
+    - gocritic
+    - godot
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - revive
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+    paths:
+      - ^templates/
+  settings:
+    exhaustive:
+      default-signifies-exhaustive: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+    - gci
+    - golines
+  exclusions:
+    generated: lax
+    paths:
+      - ^templates/
