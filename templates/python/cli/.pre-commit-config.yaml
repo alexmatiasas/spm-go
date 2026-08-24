@@ -1,0 +1,10 @@
+# Managed by spm — runs via prek (https://prek.j178.dev), drop-in
+# compatible with pre-commit.
+# Install once: prek install   (or: pre-commit install)
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format

@@ -1,0 +1,18 @@
+# Managed by spm — standard rigor adds type checking on top of the
+# base hooks. Runs via prek or pre-commit.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.1
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: uvx pyright
+        language: system
+        types: [python]
+        pass_filenames: false
