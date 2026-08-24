@@ -63,6 +63,7 @@ func newNewCmd() *cobra.Command {
 		typ      string
 		rigor    string
 		pm       string
+		license  string
 		root     string
 		noGit    bool
 		noCommit bool
@@ -84,6 +85,7 @@ func newNewCmd() *cobra.Command {
 				ProjectType:    typ,
 				RigorLevel:     firstNonEmpty(rigor, manifest.RigorStandard),
 				PackageManager: pm,
+				License:        license,
 				InitGit:        !noGit,
 				InitialCommit:  !noCommit,
 			}
@@ -100,6 +102,8 @@ func newNewCmd() *cobra.Command {
 		"project type valid for the language: cli, service or ml-pipeline")
 	flags.StringVar(&rigor, "rigor", "", "guardrails level: minimal, standard or strict")
 	flags.StringVar(&pm, "pm", "", "python package manager: uv or conda")
+	flags.StringVar(&license, "license", "",
+		"stamp a LICENSE file: "+strings.Join(scaffold.Licenses, ", "))
 	flags.StringVar(&root, "root", "", "directory where the project is created")
 	flags.BoolVar(&noGit, "no-git", false, "skip git initialization")
 	flags.BoolVar(&noCommit, "no-commit", false, "stop after git init without committing")
