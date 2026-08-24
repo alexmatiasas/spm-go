@@ -51,6 +51,41 @@ func runNew(t *testing.T, args ...string) error {
 	return root.ExecuteContext(t.Context())
 }
 
+func TestNewPrintsNextStepsAdvice(t *testing.T) {
+	cases := map[string]struct {
+		args     []string
+		hookHint string
+	}{
+		"go":     {args: []string{"--lang", "go", "--type", "service"}, hookHint: "lefthook install"},
+		"python": {args: []string{"--lang", "python", "--type", "cli"}, hookHint: "prek install"},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			useCatalog(t)
+
+			out := &bytes.Buffer{}
+			rootCmd := NewRootCmd("dev", "test")
+			rootCmd.SetOut(out)
+			rootCmd.SetErr(&bytes.Buffer{})
+			rootCmd.SetArgs(append([]string{
+				"new", "demo", "--rigor", manifest.RigorMinimal,
+				"--no-git", "--root", t.TempDir(),
+			}, tc.args...))
+
+			if err := rootCmd.ExecuteContext(t.Context()); err != nil {
+				t.Fatalf("spm new: %v", err)
+			}
+
+			for _, want := range []string{"unstaged", tc.hookHint, "git add"} {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("advice missing %q:\n%s", want, out)
+				}
+			}
+		})
+	}
+}
+
 func TestNewRequiresProjectName(t *testing.T) {
 	useCatalog(t)
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())

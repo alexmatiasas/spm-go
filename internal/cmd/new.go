@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,6 +58,28 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+// printNextSteps advises what to do with the freshly scaffolded tree.
+// spm leaves every file unstaged behind an empty initial commit, so
+// the user curates their first real commit after adjusting hooks,
+// linters and configs to taste.
+func printNextSteps(out io.Writer, opts scaffold.Options) {
+	hookTool := "lefthook"
+	if opts.Language == scaffold.LangPython {
+		hookTool = "prek" // or pre-commit: the hook format is shared
+	}
+
+	// Advice is best-effort: a closed stdout must not fail an
+	// otherwise successful scaffold.
+	_, _ = fmt.Fprintf(out, `
+Scaffolded %s. Next steps:
+  1. Review the generated files — everything is unstaged. Adjust hooks,
+     linters and configs before your first real commit.
+  2. Install the git hooks once:  %s install
+  3. When ready:                  git add -A && git commit -m "Set up project"
+  4. Optional remote:             gh repo create <owner>/%s --source . --push
+`, opts.Name, hookTool, opts.Name)
+}
+
 // newNewCmd builds `spm new`, the scaffolding entry point.
 func newNewCmd() *cobra.Command {
 	var (
@@ -92,7 +116,13 @@ func newNewCmd() *cobra.Command {
 
 			base := expandTilde(firstNonEmpty(root, cfg.Defaults.ProjectRoot, "."))
 
-			return scaffold.Run(cmd.Context(), base, opts, execRunner)
+			if err := scaffold.Run(cmd.Context(), base, opts, execRunner); err != nil {
+				return err
+			}
+
+			printNextSteps(cmd.OutOrStdout(), opts)
+
+			return nil
 		},
 	}
 
