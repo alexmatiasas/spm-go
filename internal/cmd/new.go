@@ -15,9 +15,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// execRunner shells out to native tooling inside dir, streaming tool
+// execCommand shells out to native tooling inside dir, streaming tool
 // output to stderr so spm's stdout stays clean for data.
-func execRunner(ctx context.Context, dir, name string, args ...string) error {
+func execCommand(ctx context.Context, dir, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
 	cmd.Stdout = os.Stderr
@@ -25,6 +25,11 @@ func execRunner(ctx context.Context, dir, name string, args ...string) error {
 
 	return cmd.Run()
 }
+
+// execRunner is the runner scaffold.Run delegates native commands
+// through. Production always uses execCommand; wiring tests swap it
+// for a recording fake so they stay hermetic without uv/git/cargo.
+var execRunner scaffold.CommandRunner = execCommand
 
 // expandTilde resolves a leading ~ to the user home directory.
 func expandTilde(path string) string {

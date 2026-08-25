@@ -2,14 +2,50 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/alexmatiasas/spm/internal/manifest"
 	"github.com/alexmatiasas/spm/internal/scaffold"
 )
+
+// fakeToolRunner records native commands instead of executing them,
+// keeping command wiring tests independent of installed toolchains.
+type fakeToolRunner struct {
+	calls [][]string
+}
+
+func (f *fakeToolRunner) record(_ context.Context, _, name string, args ...string) error {
+	f.calls = append(f.calls, append([]string{name}, args...))
+
+	return nil
+}
+
+func (f *fakeToolRunner) ran(name string, args ...string) bool {
+	want := append([]string{name}, args...)
+
+	return slices.ContainsFunc(f.calls, func(c []string) bool {
+		return slices.Equal(c, want)
+	})
+}
+
+// useFakeTools swaps the exec runner for a recording fake for one
+// test and returns it for assertions.
+func useFakeTools(t *testing.T) *fakeToolRunner {
+	t.Helper()
+
+	fake := &fakeToolRunner{}
+	prev := execRunner
+	execRunner = fake.record
+	t.Cleanup(func() { execRunner = prev })
+
+	return fake
+}
 
 // useCatalog points the template catalog at a throwaway fixture for
 // one test, keeping command tests hermetic.
@@ -63,6 +99,7 @@ func TestNewPrintsNextStepsAdvice(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			useCatalog(t)
+			useFakeTools(t)
 
 			out := &bytes.Buffer{}
 			rootCmd := NewRootCmd("dev", "test")
@@ -112,11 +149,16 @@ func TestNewRejectsUnknownLanguage(t *testing.T) {
 
 func TestNewScaffoldsIntoExplicitRoot(t *testing.T) {
 	useCatalog(t)
+	fake := useFakeTools(t)
 	root := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
 	if err := runNew(t, "demo", "--lang", "go", "--type", "service", "--rigor", "minimal", "--root", root, "--no-git"); err != nil {
 		t.Fatalf("spm new: %v", err)
+	}
+
+	if !fake.ran("go", "mod", "init", "demo") {
+		t.Errorf("native setup not delegated to go mod init, calls: %v", fake.calls)
 	}
 
 	got, err := manifest.Read(filepath.Join(root, "demo", ".spm", "manifest.yaml"))
@@ -151,11 +193,17 @@ func TestNewDefaultsLanguageFromConfigAndRootFromCwd(t *testing.T) {
 
 	t.Setenv("XDG_CONFIG_HOME", xdg)
 
+	fake := useFakeTools(t)
+
 	cwd := t.TempDir()
 	t.Chdir(cwd)
 
 	if err := runNew(t, "demo", "--type", "service", "--rigor", "minimal"); err != nil {
 		t.Fatalf("spm new without --lang/--root: %v", err)
+	}
+
+	if !fake.ran("git", "init") || !fake.ran("git", "commit", "--allow-empty", "-m", "Initial commit") {
+		t.Errorf("git sequence wrong, calls: %v", fake.calls)
 	}
 
 	got, err := manifest.Read(filepath.Join(cwd, "demo", ".spm", "manifest.yaml"))
@@ -165,5 +213,38 @@ func TestNewDefaultsLanguageFromConfigAndRootFromCwd(t *testing.T) {
 
 	if got.Language != "go" {
 		t.Errorf("language = %q, want config default go", got.Language)
+	}
+}
+
+// TestNewRealToolchainSmoke exercises the real exec path against
+// installed native tools — the coverage the wiring tests above give
+// up by faking the runner. Skips per language when a tool is absent;
+// CI installs both tools so the smoke runs fully there.
+func TestNewRealToolchainSmoke(t *testing.T) {
+	cases := []struct{ lang, typ, bin string }{
+		{"go", "service", "go"},
+		{"python", "cli", "uv"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.lang, func(t *testing.T) {
+			if _, err := exec.LookPath(tc.bin); err != nil {
+				t.Skipf("%s not installed", tc.bin)
+			}
+
+			useCatalog(t)
+
+			prev := execRunner
+			execRunner = execCommand
+			t.Cleanup(func() { execRunner = prev })
+
+			if err := runNew(t, "demo",
+				"--lang", tc.lang, "--type", tc.typ,
+				"--rigor", manifest.RigorMinimal,
+				"--root", t.TempDir(), "--no-git",
+			); err != nil {
+				t.Fatalf("spm new with real toolchain: %v", err)
+			}
+		})
 	}
 }
